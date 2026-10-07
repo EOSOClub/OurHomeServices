@@ -76,15 +76,20 @@ Then bring the stacks up **in this order**. Each folder's README has the details
 | 1 | **mongo** | `cp .env.example .env` · `openssl rand -base64 756 > keyfile` · `docker compose up -d` |
 | 2 | **proton-bridge** *(optional)* | `docker compose build` · `docker compose run --rm protonmail-bridge init` · `docker compose up -d` |
 | 3 | **paperless** *(optional)* | `cp .env.example .env` · `docker compose up -d` |
-| 4 | **OurHomeWeb** | Set `SERVER_DATABASE_URL` (below), then [deploy it](https://github.com/EOSOClub/OurHome#-deploy-with-docker). |
+| 4 | **OurHomeWeb** | Set `DATABASE_URL` (below), then [deploy it](https://github.com/EOSOClub/OurHome#-deploy-with-docker). |
 
 Run each stack's commands from inside its folder (`cd mongo`, and so on).
 
-**OurHomeWeb's `.env`** then points at this repo's Mongo:
+**OurHomeWeb** then points at this repo's Mongo, with the URL in its `.env`
+(secrets) and the network in its `settings.yml`:
 
 ```env
-SERVER_DATABASE_URL=mongodb://household:<MONGO_APP_PASSWORD>@mongo:27017/household?replicaSet=rs0&authSource=admin
-DOCKER_NETWORK=ourhome_net
+DATABASE_URL=mongodb://household:<MONGO_APP_PASSWORD>@mongo:27017/household?replicaSet=rs0&authSource=admin
+```
+
+```yaml
+docker:
+  network: ourhome_net
 ```
 
 ## 🔌 Ports and addresses
@@ -124,7 +129,7 @@ Each stack keeps its secrets in its own gitignored files. Never commit them.
 <summary><b>Can I use MongoDB Atlas or an existing MongoDB instead?</b></summary>
 <br>
 
-Yes. Skip the `mongo` stack and point `SERVER_DATABASE_URL` at it. It must be a
+Yes. Skip the `mongo` stack and point OurHomeWeb's `DATABASE_URL` at it. It must be a
 **replica set**. Atlas always is; a self-run `mongod` needs `--replSet` and a
 one-time `rs.initiate()`.
 
@@ -144,7 +149,8 @@ IMAP server instead (Gmail, Fastmail and so on, usually with an app password).
 <br>
 
 Not by default. OurHomeWeb's email (password resets, reminders, bug reports)
-uses any SMTP server via its `SERVER_SMTP_HOST` / `SMTP_*` settings, for example
+uses any SMTP server via the `smtp:` section of its `settings.yml` (password:
+`SMTP_PASS` in `.env`), for example
 Proton's own SMTP submission (`smtp.protonmail.ch:587` with an SMTP token).
 
 </details>

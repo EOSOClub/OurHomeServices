@@ -131,17 +131,27 @@ What it needs here:
 1. The tags `bill` and `bill-payment` (*Matching: None*, *Owner: none*). Point
    the mail rules above at `bill` for bills; payment confirmations get
    `bill-payment` (a second Proton folder plus rule, or tag them by hand).
+   If bills and payment confirmations arrive from the same sender into the same
+   folder, give the tags **regular-expression matching on content** instead; see
+   [content matching](https://github.com/EOSOClub/OurHome/blob/main/docs/paperless-import.md#optional-tag-bills-automatically-by-content)
+   (patterns are limited to 256 characters).
 2. The custom fields **Amount** (Monetary) and **Due date** (Date), and ideally
    **Account number** (Text), filled on those documents.
 3. A **read-only user** (e.g. `ourhome`) with *view* on Document, Tag,
    Correspondent and Custom field, and its **API token**.
 
-Then in OurHomeWeb's `.env`:
+Then in OurHomeWeb's `settings.yml`:
+
+```yaml
+paperless:
+  url: http://paperless:8000
+  public_url: <your PAPERLESS_URL, for "Open in Paperless" links>
+```
+
+and the token, a secret, in its `.env`:
 
 ```env
-SERVER_PAPERLESS_URL=http://paperless:8000
-SERVER_PAPERLESS_TOKEN=<token of the read-only user>
-PAPERLESS_PUBLIC_URL=<your PAPERLESS_URL, for "Open in Paperless" links>
+PAPERLESS_TOKEN=<token of the read-only user>
 ```
 
 Full guide, dry-run preview and troubleshooting:
@@ -160,6 +170,10 @@ the stack before copying `./data/`. To restore on a fresh install, use
 `document_importer` ([docs](https://docs.paperless-ngx.com/administration/#importer)).
 
 ## ⬆️ Updating
+
+Paperless is pinned to a version tag in `docker-compose.yml`. To update, change
+the tag to a newer [release](https://github.com/paperless-ngx/paperless-ngx/releases)
+(back up first, see above), then:
 
 ```bash
 docker compose pull && docker compose up -d
