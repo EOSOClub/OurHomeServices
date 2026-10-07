@@ -46,9 +46,10 @@ docker compose logs mongo-init  # "replica set initiated" and "app user created"
 In OurHomeWeb's `.env`:
 
 ```env
-SERVER_DATABASE_URL=mongodb://household:<MONGO_APP_PASSWORD>@mongo:27017/household?replicaSet=rs0&authSource=admin
-DOCKER_NETWORK=ourhome_net
+DATABASE_URL=mongodb://household:<MONGO_APP_PASSWORD>@mongo:27017/household?replicaSet=rs0&authSource=admin
 ```
+
+and in its `settings.yml`, `docker.network: ourhome_net`.
 
 The database (`household`) is created on first use. OurHomeWeb applies its
 schema with `prisma db push` every time its container starts.

@@ -32,7 +32,9 @@ services:
       POSTGRES_PASSWORD: ${PAPERLESS_DBPASS:?set PAPERLESS_DBPASS in .env}
 
   webserver:
-    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    # Pinned so `docker compose pull` never jumps a version by surprise. To
+    # update, bump the tag (see the Updating section in README.md).
+    image: ghcr.io/paperless-ngx/paperless-ngx:3.1.3
     container_name: paperless
     restart: unless-stopped
     depends_on:
