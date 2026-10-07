@@ -1,0 +1,38 @@
+# Headless Proton Mail Bridge. Gives other containers plain IMAP/SMTP access to
+# a Proton Mail account, over the shared Docker network only:
+#   protonmail-bridge:143  IMAP   (Paperless-ngx reads bill emails here)
+#   protonmail-bridge:25   SMTP
+#
+# One-time setup (from this folder):
+#   docker network create ourhome_net
+#   docker compose build
+#   docker compose run --rm protonmail-bridge init   # login, then: info, exit
+#   docker compose up -d
+#
+# No ports are published to the host on purpose: the Bridge accepts logins
+# without TLS (see README.md), so it must only be reachable inside Docker.
+
+name: ourhome-bridge
+
+services:
+  protonmail-bridge:
+    # shenxn/protonmail-bridge + libfido2, see image/Dockerfile. The build
+    # context is ./image so the large ./state tree isn't sent to Docker.
+    build:
+      context: ./image
+    image: ourhome/protonmail-bridge:libfido2
+    container_name: ourhome_bridge
+    restart: unless-stopped
+    volumes:
+      # The container's /root: Proton login, keychain and the self-updated
+      # Bridge binary. Gitignored. Losing it means logging in again.
+      - ./state:/root
+    networks:
+      ourhome:
+        aliases:
+          - protonmail-bridge
+
+networks:
+  ourhome:
+    name: ${DOCKER_NETWORK:-ourhome_net}
+    external: true

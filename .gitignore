@@ -1,0 +1,16 @@
+# Secrets and per-install settings
+.env
+mongo/keyfile
+
+# Runtime state and data (never commit)
+proton-bridge/state/*
+!proton-bridge/state/.gitkeep
+paperless/data/
+paperless/consume/
+paperless/export/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

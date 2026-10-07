@@ -1,0 +1,107 @@
+# MongoDB single-node replica set (rs0) for OurHomeWeb.
+#
+# A replica set is required: OurHomeWeb uses Prisma transactions, which MongoDB
+# only supports on a replica set. Auth is on, and a replica set with auth needs
+# a keyfile for internal member authentication.
+#
+# One-time setup (from this folder):
+#   docker network create ourhome_net
+#   cp .env.example .env                  # then set the passwords
+#   openssl rand -base64 756 > keyfile
+#   docker compose up -d
+#
+# OurHomeWeb reaches it as mongo:27017 on the shared network.
+
+name: ourhome-mongo
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: ourhome_mongo
+    hostname: mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD in .env}
+    # mongod refuses a keyfile that isn't owned by its user (uid 999) with mode
+    # 400, and a bind mount from the host can't guarantee either, so the
+    # entrypoint installs a private copy before starting.
+    entrypoint:
+      - bash
+      - -c
+      - |
+        install -m 400 -o 999 -g 999 /run/keyfile /tmp/mongo-keyfile
+        exec docker-entrypoint.sh mongod \
+          --replSet rs0 --bind_ip_all --auth --keyFile /tmp/mongo-keyfile
+    ports:
+      # For Compass / mongosh from the host (add ?directConnection=true).
+      # Localhost only by default; set MONGO_BIND=0.0.0.0 to open it to the LAN.
+      - "${MONGO_BIND:-127.0.0.1}:${MONGO_HOST_PORT:-27018}:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./keyfile:/run/keyfile:ro
+    networks:
+      ourhome:
+        aliases:
+          - mongo
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: initiate the replica set and create the app user, then exit 0.
+  # Safe to re-run: both steps skip themselves when already done.
+  mongo-init:
+    image: mongo:7
+    container_name: ourhome_mongo_init
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - ourhome
+    environment:
+      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-root}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME:-household}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?set MONGO_APP_PASSWORD in .env}
+    entrypoint:
+      - bash
+      - -c
+      - |
+        mongosh --host mongo:27017 --quiet \
+          -u "$$MONGO_ROOT_USERNAME" -p "$$MONGO_ROOT_PASSWORD" --authenticationDatabase admin \
+          --eval '
+            // 1. Initiate the replica set. The member is advertised as
+            //    mongo:27017 so clients on the shared network can resolve it.
+            try { rs.status(); print("replica set already initialised"); }
+            catch (e) {
+              rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongo:27017"}]});
+              print("replica set initiated");
+            }
+            // 2. Wait for this node to become the writable primary.
+            let n = 0;
+            while (!db.hello().isWritablePrimary && n++ < 60) { sleep(1000); }
+            if (!db.hello().isWritablePrimary) { throw new Error("node did not become primary"); }
+            // 3. Create the application user.
+            const admin = db.getSiblingDB("admin");
+            const appUser = "'"$$MONGO_APP_USERNAME"'";
+            if (admin.getUser(appUser)) {
+              print("app user already exists");
+            } else {
+              admin.createUser({
+                user: appUser,
+                pwd: "'"$$MONGO_APP_PASSWORD"'",
+                roles: [{ role: "readWriteAnyDatabase", db: "admin" }],
+              });
+              print("app user created");
+            }'
+
+networks:
+  ourhome:
+    name: ${DOCKER_NETWORK:-ourhome_net}
+    external: true
+
+volumes:
+  mongo_data:
