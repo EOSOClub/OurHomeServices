@@ -155,6 +155,14 @@ Proton's own SMTP submission (`smtp.protonmail.ch:587` with an SMTP token).
 
 </details>
 
+## 🐛 Found a bug?
+
+Problems with these stacks, the website and the Android app are all tracked in one place: [OurHome issues](https://github.com/EOSOClub/OurHome/issues). Security problems are reported privately instead; see the [security policy](https://github.com/EOSOClub/OurHome/blob/main/SECURITY.md).
+
+## 📜 License
+
+OurHomeServices is free software under the [GNU Affero General Public License v3.0](LICENSE). You can run it, change it and share it. If you change it and let other people use your version over a network, you must share your changed source code under the same license. Paperless-ngx, Proton Mail Bridge and MongoDB keep their own licenses.
+
 ---
 
 <div align="center">
