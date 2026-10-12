@@ -99,7 +99,7 @@ Paperless straightens and rotates it automatically.
 | Custom field `Amount` | Type *Monetary* | The amount due or paid. |
 
 Paperless learns **correspondents** (who sent it) and **document types** from
-your corrections. Fix the first 10–20 documents by hand and its auto-matching
+your corrections. Fix the first 10-20 documents by hand and its auto-matching
 gets good after that.
 
 > [!WARNING]
